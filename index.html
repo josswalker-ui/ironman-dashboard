@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IM Dashboard">
+<title>Ironman Training Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#0d0d0f;--s1:#18181b;--s2:#1e1e22;--s3:#26262c;--bd:#2e2e38;--tx:#f0f0f2;--tx2:#a1a1aa;--tx3:#52525b;--or:#FC4C02;--ord:rgba(252,76,2,0.12);--org:rgba(252,76,2,0.06);--bl:#3b9dff;--bld:rgba(59,157,255,0.1);--gn:#22c55e;--gnd:rgba(34,197,94,0.1);--pu:#a855f7;--rd:#ef4444;--sw:180px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;z-index:200;background:#0d0d0f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:opacity .75s ease;overflow:hidden}
+#splash.sp-exit{opacity:0;pointer-events:none}
+/* ambient glow */
+#splash::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(252,76,2,.12) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);animation:spGlowPulse 3s ease-in-out infinite}
+@keyframes spGlowPulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+/* ring */
+.sp-ring-wrap{position:relative;width:130px;height:130px;margin-bottom:28px;animation:spFadeIn .3s ease both}
+.sp-svg{width:130px;height:130px;transform:rotate(-90deg)}
+.sp-track{fill:none;stroke:#2e2e38;stroke-width:4}
+.sp-arc{fill:none;stroke:#FC4C02;stroke-width:4;stroke-linecap:round;
+  stroke-dasharray:345.4;stroke-dashoffset:345.4;
+  animation:spDrawRing 1.1s cubic-bezier(.4,0,.2,1) .2s forwards;
+  filter:drop-shadow(0 0 6px rgba(252,76,2,.6))}
+@keyframes spDrawRing{to{stroke-dashoffset:0}}
+.sp-im{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;letter-spacing:-1px;color:#f0f0f2;animation:spFadeIn .4s ease .8s both}
+/* text stagger */
+.sp-welcome{font-size:10px;font-weight:700;letter-spacing:3px;color:var(--tx3);text-transform:uppercase;animation:spFadeUp .5s ease .9s both}
+.sp-name{font-size:42px;font-weight:900;letter-spacing:-1.5px;color:#f0f0f2;line-height:1;margin-top:4px;animation:spFadeUp .5s ease 1.05s both}
+.sp-divider{width:0;height:1px;background:var(--or);margin:18px 0;animation:spLineGrow .5s ease 1.25s both}
+.sp-days-wrap{display:flex;flex-direction:column;align-items:center;animation:spFadeUp .5s ease 1.4s both}
+.sp-days-num{font-size:80px;font-weight:900;letter-spacing:-4px;line-height:1;color:var(--or);text-shadow:0 0 40px rgba(252,76,2,.4)}
+.sp-days-lbl{font-size:9px;font-weight:700;letter-spacing:3px;color:var(--tx3);text-transform:uppercase;margin-top:4px}
+.sp-sub{font-size:12px;color:var(--tx2);margin-top:10px;animation:spFadeUp .5s ease 1.6s both}
+.sp-bar-track{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--bd)}
+.sp-bar-fill{height:100%;background:var(--or);width:0;animation:spBarFill 3.2s cubic-bezier(.25,.46,.45,.94) .5s forwards;box-shadow:0 0 8px rgba(252,76,2,.5)}
+/* app fade in after splash */
+#app.fade-in{animation:spFadeIn .6s ease both}
+@keyframes spFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spLineGrow{from{width:0}to{width:60px}}
+@keyframes spBarFill{from{width:0}to{width:100%}}
+
+/* ── LOGIN ── */
+#login{display:none;height:100vh;background:radial-gradient(ellipse at 30% 20%,#1c0500,var(--bg) 60%)}
+.login-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px;text-align:center}
+.login-logo{font-size:64px;margin-bottom:18px;filter:drop-shadow(0 0 30px rgba(252,76,2,.5))}
+.login-title{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--tx2);margin-bottom:36px}
+.btn-strava{display:inline-flex;align-items:center;gap:10px;background:var(--or);color:#fff;border:none;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;box-shadow:0 6px 28px rgba(252,76,2,.35);transition:transform .15s,box-shadow .15s}
+.btn-strava:hover{transform:translateY(-1px);box-shadow:0 10px 36px rgba(252,76,2,.45)}
+.btn-strava svg{width:18px;height:18px}
+.login-note{font-size:10px;color:var(--tx3);margin-top:20px;max-width:240px;line-height:1.5}
+
+/* ── LOADING ── */
+#loading{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:32px;height:32px;border:2.5px solid var(--bd);border-top-color:var(--or);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:12px;color:var(--tx3)}
+
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;grid-template-columns:var(--sw) 1fr}
+#app.active{display:grid}
+
+/* ── SIDEBAR ── */
+.sidebar{background:#0f0f12;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.sb-brand{padding:14px 14px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.sb-brand h1{font-size:12px;font-weight:800;color:var(--tx);letter-spacing:.2px}
+.sb-brand .sub{font-size:10px;color:var(--or);margin-top:2px;font-weight:600}
+.sb-nav{padding:8px 7px;flex:1}
+.nav-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border-radius:7px;border:none;background:none;color:var(--tx3);font-size:11px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s;margin-bottom:1px;position:relative}
+.nav-item:hover{background:var(--s2);color:var(--tx2)}
+.nav-item.active{background:var(--ord);color:var(--or)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:var(--or);border-radius:0 2px 2px 0}
+.nav-emoji{font-size:13px}
+.sb-footer{padding:10px 12px;border-top:1px solid var(--bd);flex-shrink:0}
+.sb-footer .race-lbl{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.sb-days{font-size:28px;font-weight:900;color:var(--or);letter-spacing:-1px;line-height:1}
+.sb-days-lbl{font-size:9px;color:var(--tx3);margin-top:1px}
+.sb-actions{display:flex;gap:5px;margin-top:10px}
+.sb-btn{flex:1;background:var(--s3);border:1px solid var(--bd);color:var(--tx2);height:24px;border-radius:5px;cursor:pointer;font-size:11px;transition:all .15s}
+.sb-btn:hover{color:var(--or);border-color:rgba(252,76,2,.3)}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:var(--bg)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--bd);background:#0e0e11;flex-shrink:0;height:38px}
+.tb-left{display:flex;gap:5px;align-items:center}
+.tb-right{font-size:9px;color:var(--tx3)}
+.tbadge{border-radius:20px;padding:2px 7px;font-size:9px;font-weight:700}
+.tbadge.or{background:var(--ord);color:var(--or);border:1px solid rgba(252,76,2,.2)}
+.tbadge.nt{background:var(--s3);color:var(--tx2);border:1px solid var(--bd)}
+
+/* ── VIEWS ── */
+.view{display:none;flex:1;overflow:hidden}
+.view.active{display:flex;flex-direction:column}
+
+/* ── OVERVIEW GRID ── */
+#view-overview.active{display:grid;grid-template-rows:114px 1fr 1fr;gap:9px;padding:9px 12px;overflow:hidden}
+.gauge-row{display:grid;grid-template-columns:repeat(5,1fr) 1.7fr;gap:9px}
+.mid-row,.bot-row{display:grid;gap:9px;overflow:hidden;min-height:0}
+.mid-row{grid-template-columns:3fr 2fr}
+.bot-row{grid-template-columns:1fr 1fr}
+
+/* ── GAUGE CARDS ── */
+.g-card{background:var(--s1);border:1px solid var(--bd);border-radius:11px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;overflow:hidden}
+.g-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;opacity:.6}
+.g-card.gor::before{background:var(--or)}
+.g-card.gbl::before{background:var(--bl)}
+.g-card.ggn::before{background:var(--gn)}
+.g-card.gpu::before{background:var(--pu)}
+.g-lbl{font-size:9px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;text-align:center}
+.g-sub{font-size:8px;color:var(--tx3);text-align:center}
+/* Stat card (no ring) */
+.g-stat{background:var(--s1);border:1px solid var(--bd);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;height:100%}
+.g-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--tx3);opacity:.4}
+.g-stat-lbl{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.g-stat-row{display:flex;align-items:baseline;gap:4px;margin-bottom:2px}
+.g-stat-val{font-size:22px;font-weight:900;line-height:1;letter-spacing:-1px}
+.g-stat-unit{font-size:9px;color:var(--tx2)}
+.g-stat-mini{font-size:9px;color:var(--tx3);margin-top:2px}
+.mini-bar{height:3px;background:var(--s3);border-radius:2px;margin-top:5px;overflow:hidden}
+.mini-fill{height:100%;border-radius:2px;transition:width 1s ease}
+
+/* ── PANELS (inside grid rows) ── */
+.panel{background:var(--s1);border:1px solid var(--bd);border-radius:11px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.panel-hdr{padding:8px 11px 6px;border-bottom:1px solid var(--bd);font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.panel-body{flex:1;overflow:auto;padding:8px 10px;min-height:0}
+.panel-body::-webkit-scrollbar{width:3px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+
+/* ── SESSIONS in today panel ── */
+.sess-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none}
+.sess-row:last-child{border-bottom:none}
+.sess-row.done-row{opacity:.45}
+.sport-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-sw{background:var(--bl);box-shadow:0 0 5px rgba(59,157,255,.5)}
+.dot-bk{background:var(--or);box-shadow:0 0 5px rgba(252,76,2,.5)}
+.dot-rn{background:var(--gn);box-shadow:0 0 5px rgba(34,197,94,.5)}
+.dot-gy{background:var(--pu)}
+.dot-xx{background:var(--tx3)}
+.sess-emoji{font-size:13px;flex-shrink:0;width:18px;text-align:center}
+.sess-info{flex:1;min-width:0}
+.sess-lbl{font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess-lbl.done{text-decoration:line-through;color:var(--tx3)}
+.sess-det{font-size:9px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess-chk{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.sess-chk.done{background:var(--gn);border-color:var(--gn)}
+.sess-chk.done::after{content:'✓';color:#fff;font-size:9px;font-weight:800}
+.sess-expand-btn{font-size:9px;color:var(--tx3);flex-shrink:0;transition:transform .2s}
+.sess-expand-btn.open{transform:rotate(180deg)}
+.sess-notes{display:none;padding:6px 0 4px 26px}
+.sess-notes.open{display:block}
+.sess-notes textarea{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:6px 8px;font-size:10px;color:var(--tx);resize:none;min-height:48px;outline:none;font-family:inherit;line-height:1.4}
+.sess-notes textarea:focus{border-color:var(--or)}
+.sess-notes textarea::placeholder{color:var(--tx3)}
+.sess-notes .edit-fields{display:none;margin-top:5px}
+.sess-notes .edit-fields input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:5px 8px;font-size:10px;color:var(--tx);outline:none;font-family:inherit;margin-bottom:4px}
+.sess-notes .edit-fields input:focus{border-color:var(--or)}
+.sess-notes .edit-fields input::placeholder{color:var(--tx3)}
+.sess-note-btns{display:flex;gap:4px;margin-top:4px}
+.snbtn{font-size:9px;font-weight:600;padding:3px 7px;border-radius:5px;border:1px solid var(--bd);background:var(--s2);color:var(--tx2);cursor:pointer}
+.snbtn:hover{border-color:var(--or);color:var(--or)}
+.rest-day{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:6px;color:var(--tx3)}
+.rest-day .rest-emoji{font-size:28px}
+.rest-day .rest-txt{font-size:11px}
+
+/* ── UPCOMING day headers ── */
+.up-day-hdr{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:5px 0 3px}
+.up-day-hdr.today{color:var(--or)}
+
+/* ── ACTIVITIES in log panel ── */
+.act-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bd)}
+.act-row:last-child{border-bottom:none}
+.act-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.act-ico.run{background:var(--gnd);border:1px solid rgba(34,197,94,.15)}
+.act-ico.bike{background:var(--ord);border:1px solid rgba(252,76,2,.15)}
+.act-ico.swim{background:var(--bld);border:1px solid rgba(59,157,255,.15)}
+.act-ico.other{background:var(--s2);border:1px solid var(--bd)}
+.act-inf{flex:1;min-width:0}
+.act-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-date{font-size:9px;color:var(--tx3);margin-top:1px}
+.act-stats{text-align:right;flex-shrink:0}
+.act-prim{font-size:12px;font-weight:800}
+.act-sec{font-size:9px;color:var(--tx2)}
+.act-hr{font-size:9px;color:var(--rd);margin-top:1px;font-weight:600}
+.pill{display:inline-block;font-size:8px;font-weight:700;padding:1px 4px;border-radius:4px;margin-left:3px;vertical-align:middle}
+.pill-re{background:var(--s2);color:var(--tx3)}
+.pill-hi{background:var(--ord);color:var(--or)}
+.pill-pr{background:rgba(245,158,11,.12);color:#f59e0b}
+
+/* ── PROGRESS BARS ── */
+.prog-item{margin-bottom:9px}
+.prog-item:last-child{margin-bottom:0}
+.prog-head{display:flex;justify-content:space-between;margin-bottom:4px}
+.prog-nm{font-size:10px;color:var(--tx2)}
+.prog-pct{font-size:10px;font-weight:700;color:var(--tx)}
+.prog-track{height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.pf-sw{background:linear-gradient(90deg,#1a4f8a,var(--bl))}
+.pf-bk{background:linear-gradient(90deg,#7a2000,var(--or))}
+.pf-rn{background:linear-gradient(90deg,#14532d,var(--gn))}
+/* ── TSB / FRESHNESS ── */
+.tsb-row{display:flex;align-items:baseline;gap:5px;margin-top:3px}
+.tsb-num{font-size:17px;font-weight:900;letter-spacing:-1px}
+.tsb-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:2px}
+.tsb-fr{color:#22c55e;background:rgba(34,197,94,.12)}
+.tsb-bl{color:#3b9dff;background:rgba(59,157,255,.1)}
+.tsb-nt{color:var(--tx2);background:var(--s3)}
+.tsb-ti{color:#f59e0b;background:rgba(245,158,11,.1)}
+.tsb-fa{color:#ef4444;background:rgba(239,68,68,.1)}
+/* ── READINESS HERO ── */
+.ready-score{font-size:36px;font-weight:900;letter-spacing:-2px;line-height:1}
+.ready-delta{font-size:10px;font-weight:700;margin-top:2px}
+.ready-delta.up{color:#22c55e}
+.ready-delta.dn{color:#ef4444}
+.ready-delta.nc{color:var(--tx3)}
+.ready-proj{font-size:10px;color:var(--tx2);margin-top:3px}
+.ready-proj strong{color:var(--tx)}
+/* ── PROJECTED FINISH ── */
+.proj-wrap{background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;margin-top:8px}
+.proj-hdr{font-size:8px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.proj-splits{display:flex;gap:0;align-items:center;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.proj-split{display:flex;flex-direction:column;align-items:center;flex:1}
+.proj-split-val{font-size:13px;font-weight:800;color:var(--tx)}
+.proj-split-lbl{font-size:8px;color:var(--tx3)}
+.proj-div{color:var(--tx3);font-size:10px;flex:0}
+.proj-total{font-size:9px;color:var(--tx2);text-align:center;border-top:1px solid var(--bd);padding-top:5px;margin-top:2px}
+.proj-total strong{color:var(--or);font-size:14px;font-weight:900}
+/* ── THRESHOLD INPUTS ── */
+.thresh-wrap{background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:7px 10px;margin-top:7px}
+.thresh-hdr{display:flex;justify-content:space-between;align-items:center;font-size:8px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.thresh-btn{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:10px;padding:0 2px}
+.thresh-btn:hover{color:var(--or)}
+.thresh-display{display:flex;flex-wrap:wrap;gap:4px}
+.thresh-chip{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:4px 7px;font-size:9px;color:var(--tx2);flex:1;min-width:0;text-align:center}
+.thresh-chip strong{color:var(--tx);display:block;font-size:12px;font-weight:800;margin-bottom:1px}
+.thresh-chip em{font-style:normal;color:var(--tx3);font-size:8px}
+.thresh-edit{display:none;margin-top:6px}
+.thresh-edit input{width:100%;background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:5px 8px;font-size:10px;color:var(--tx);outline:none;font-family:inherit;margin-bottom:4px}
+.thresh-edit input:focus{border-color:var(--or)}
+.thresh-edit input::placeholder{color:var(--tx3)}
+.thresh-save{width:100%;background:var(--ord);border:1px solid rgba(252,76,2,.3);color:var(--or);border-radius:6px;padding:5px;font-size:10px;font-weight:700;cursor:pointer;margin-top:2px}
+.thresh-save:hover{background:rgba(252,76,2,.2)}
+
+/* ── CHARTS VIEW ── */
+#view-charts.active{padding:10px 12px;overflow:auto;gap:10px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.chart-card{background:var(--s1);border:1px solid var(--bd);border-radius:11px;padding:11px 12px;overflow:hidden}
+.chart-card h3{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.chart-card.wide{grid-column:span 2}
+.chart-wrap{position:relative;width:100%}
+
+/* ── SESSIONS VIEW ── */
+#view-sessions.active{padding:10px 12px;overflow:auto;gap:0}
+.session-block{background:var(--s1);border:1px solid var(--bd);border-radius:11px;margin-bottom:8px;overflow:hidden}
+.session-block-hdr{padding:7px 11px;background:var(--s2);border-bottom:1px solid var(--bd);font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px}
+.session-block-hdr.today-hdr{color:var(--or)}
+.full-sess-row{display:flex;align-items:center;gap:10px;padding:10px 11px;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none}
+.full-sess-row:last-child{border-bottom:none}
+.full-sess-row.done-row{opacity:.5}
+.fs-stripe{width:3px;height:36px;border-radius:2px;flex-shrink:0}
+.fss-sw{background:var(--bl)}
+.fss-bk{background:var(--or)}
+.fss-rn{background:var(--gn)}
+.fss-gy{background:var(--pu)}
+.fss-xx{background:var(--tx3)}
+.fss-af{background:#f59e0b}
+.fs-emoji{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.fs-info{flex:1;min-width:0}
+.fs-lbl{font-size:12px;font-weight:700;color:var(--tx)}
+.fs-lbl.done{text-decoration:line-through;color:var(--tx3)}
+.fs-det{font-size:10px;color:var(--tx2);margin-top:2px}
+.fs-chk{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.fs-chk.done{background:var(--gn);border-color:var(--gn)}
+.fs-chk.done::after{content:'✓';color:#fff;font-size:11px;font-weight:800}
+.fs-arr{font-size:10px;color:var(--tx3);margin-left:4px;transition:transform .2s;flex-shrink:0}
+.fs-arr.open{transform:rotate(180deg)}
+.fs-expand{display:none;padding:0 11px 10px 36px;border-top:1px solid var(--bd)}
+.fs-expand.open{display:block}
+.fs-expand textarea{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--tx);resize:vertical;min-height:56px;outline:none;font-family:inherit;margin-top:8px}
+.fs-expand textarea:focus{border-color:var(--or)}
+.fs-expand textarea::placeholder{color:var(--tx3)}
+.fs-edit-wrap{display:none;margin-top:7px}
+.fs-edit-wrap input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--tx);outline:none;font-family:inherit;margin-bottom:5px}
+.fs-edit-wrap input:focus{border-color:var(--or)}
+.fs-edit-wrap input::placeholder{color:var(--tx3)}
+.fs-btns{display:flex;gap:5px;margin-top:6px}
+.fsbtn{font-size:10px;font-weight:600;padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx2);cursor:pointer}
+.fsbtn:hover{border-color:var(--or);color:var(--or)}
+.fsbtn.primary{background:var(--ord);border-color:rgba(252,76,2,.3);color:var(--or)}
+
+/* ── LOG VIEW ── */
+#view-log.active{padding:10px 12px;overflow:auto;gap:0}
+.log-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:11px;padding:0 12px}
+
+/* ── EMPTY STATES ── */
+.empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--tx3);font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-ring-wrap">
+    <svg viewBox="0 0 120 120" class="sp-svg">
+      <circle cx="60" cy="60" r="55" class="sp-track"/>
+      <circle cx="60" cy="60" r="55" class="sp-arc"/>
+    </svg>
+    <div class="sp-im">🏁</div>
+  </div>
+  <div class="sp-welcome">Welcome back</div>
+  <div class="sp-name">Joss</div>
+  <div class="sp-divider"></div>
+  <div class="sp-days-wrap">
+    <div class="sp-days-num" id="sp-days">—</div>
+    <div class="sp-days-lbl">Days to Port Macquarie</div>
+  </div>
+  <div class="sp-sub">Oct 18, 2026 &nbsp;·&nbsp; Sub-10:00 Goal</div>
+  <div class="sp-bar-track"><div class="sp-bar-fill"></div></div>
+</div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-inner">
+    <div class="login-logo">🏁</div>
+    <div class="login-title">Ironman Dashboard</div>
+    <div class="login-sub">Port Macquarie · Oct 18, 2026 · Sub-10 Goal</div>
+    <a id="connect-btn" class="btn-strava" href="#">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      Connect with Strava
+    </a>
+    <div class="login-note">Token stored locally on your device only.</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading"><div class="spinner"></div><div class="load-txt" id="load-msg">Loading…</div></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <h1>🏁 Ironman</h1>
+      <div class="sub">Port Macquarie 2026</div>
+    </div>
+    <nav class="sb-nav">
+      <button class="nav-item active" data-view="overview" onclick="switchView('overview')">
+        <span class="nav-emoji">⚡</span> Overview
+      </button>
+      <button class="nav-item" data-view="sessions" onclick="switchView('sessions')">
+        <span class="nav-emoji">📅</span> Sessions
+      </button>
+      <button class="nav-item" data-view="charts" onclick="switchView('charts')">
+        <span class="nav-emoji">📊</span> Charts
+      </button>
+      <button class="nav-item" data-view="log" onclick="switchView('log')">
+        <span class="nav-emoji">📋</span> Activity Log
+      </button>
+    </nav>
+    <div class="sb-footer">
+      <div class="race-lbl">Race Countdown</div>
+      <div class="sb-days" id="sb-days">—</div>
+      <div class="sb-days-lbl">days to go</div>
+      <div class="sb-actions">
+        <button class="sb-btn" onclick="refreshData()">↻ Refresh</button>
+        <button class="sb-btn" onclick="logout()">⏻ Out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="tb-left">
+        <span class="tbadge or" id="b-week">Wk —</span>
+        <span class="tbadge nt" id="b-phase">—</span>
+        <span class="tbadge nt" id="b-pct">—%</span>
+      </div>
+      <div class="tb-right">Updated: <span id="last-updated">—</span></div>
+    </div>
+
+    <!-- OVERVIEW VIEW -->
+    <div id="view-overview" class="view active">
+      <!-- Gauge Row -->
+      <div class="gauge-row">
+        <!-- Countdown -->
+        <div class="g-card gor" id="gc-days"></div>
+        <!-- Week Swim -->
+        <div class="g-card gbl" id="gc-sw"></div>
+        <!-- Week Ride -->
+        <div class="g-card gor" id="gc-bk"></div>
+        <!-- Week Run -->
+        <div class="g-card ggn" id="gc-rn"></div>
+        <!-- Training Load -->
+        <div class="g-stat" id="gc-load">
+          <div class="g-stat-lbl">Training Load</div>
+          <div style="display:flex;gap:6px;align-items:baseline;margin-bottom:2px">
+            <div><span class="g-stat-val" id="atl-val" style="color:var(--or);font-size:18px">—</span><span class="g-stat-unit"> ATL</span></div>
+            <div><span class="g-stat-val" style="font-size:14px;color:var(--bl)" id="ctl-val">—</span><span class="g-stat-unit"> CTL</span></div>
+          </div>
+          <div class="tsb-row">
+            <span class="tsb-num" id="tsb-val">—</span><span class="g-stat-unit">TSB</span>
+            <span class="tsb-badge tsb-nt" id="tsb-badge">—</span>
+          </div>
+          <div class="mini-bar" style="margin-top:5px"><div class="mini-fill" id="load-bar" style="background:var(--or);width:0"></div></div>
+        </div>
+        <!-- IM Readiness HERO -->
+        <div class="g-stat" style="border-color:rgba(252,76,2,.25);background:linear-gradient(135deg,#1a0f00,var(--s1))">
+          <div style="position:absolute;top:0;left:0;right:0;height:1px;background:var(--or);opacity:.7"></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="g-stat-lbl" style="color:var(--or)">IM Readiness</div>
+              <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px">
+                <span class="ready-score" id="ready-val">—</span>
+                <span class="g-stat-unit" style="font-size:14px">%</span>
+              </div>
+              <div class="ready-delta nc" id="ready-delta">—</div>
+            </div>
+            <div style="text-align:right">
+              <div class="g-stat-lbl">Projected</div>
+              <div style="font-size:16px;font-weight:900;color:var(--tx);margin-top:2px" id="ready-proj-time">—</div>
+              <div style="font-size:8px;color:var(--tx3);margin-top:1px">sub-10:00 goal</div>
+            </div>
+          </div>
+          <div class="g-stat-mini" id="ready-lbl" style="margin-top:4px">—</div>
+          <div class="mini-bar" style="margin-top:5px;background:rgba(252,76,2,.1)"><div class="mini-fill" id="ready-bar" style="background:var(--or);width:0"></div></div>
+          <div class="g-stat-mini" style="margin-top:4px">Wk <span id="wk-mini">—</span> · <span id="phase-mini2">—</span> · <span id="ready-days">—</span>d to go</div>
+        </div>
+      </div>
+
+      <!-- Mid Row: Chart + Sessions -->
+      <div class="mid-row">
+        <!-- Training load chart -->
+        <div class="panel">
+          <div class="panel-hdr">Training Load — Acute (7d) vs Chronic (28d)</div>
+          <div class="panel-body" style="padding:8px 10px 6px;position:relative">
+            <div style="position:relative;height:100%;min-height:80px"><canvas id="loadChart"></canvas></div>
+          </div>
+        </div>
+        <!-- Today's sessions -->
+        <div class="panel" style="align-self:start;max-height:175px">
+          <div class="panel-hdr"><span>Today's Sessions</span><span id="today-date" style="color:var(--tx3);font-weight:400"></span></div>
+          <div class="panel-body" id="today-sessions" style="overflow:hidden"></div>
+        </div>
+      </div>
+
+      <!-- Bot Row: Activities + Progress -->
+      <div class="bot-row">
+        <!-- Recent activities -->
+        <div class="panel">
+          <div class="panel-hdr">Recent Activities</div>
+          <div class="panel-body" id="recent-acts"></div>
+        </div>
+        <!-- Progress + Projected + Threshold -->
+        <div class="panel">
+          <div class="panel-hdr">Race Readiness &amp; Projections</div>
+          <div class="panel-body">
+            <div class="prog-item">
+              <div class="prog-head"><span class="prog-nm">🏊 Swim — best <strong id="bsw">—</strong>m of 3,800m</span><span class="prog-pct" id="pct-sw">—</span></div>
+              <div class="prog-track"><div class="prog-fill pf-sw" id="bar-sw" style="width:0"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-head"><span class="prog-nm">🚴 Ride — best <strong id="bbk">—</strong>km of 180km</span><span class="prog-pct" id="pct-bk">—</span></div>
+              <div class="prog-track"><div class="prog-fill pf-bk" id="bar-bk" style="width:0"></div></div>
+            </div>
+            <div class="prog-item">
+              <div class="prog-head"><span class="prog-nm">🏃 Run — best <strong id="brn">—</strong>km of 42km</span><span class="prog-pct" id="pct-rn">—</span></div>
+              <div class="prog-track"><div class="prog-fill pf-rn" id="bar-rn" style="width:0"></div></div>
+            </div>
+            <!-- Projected Finish Time -->
+            <div class="proj-wrap">
+              <div class="proj-hdr">Projected Finish Time</div>
+              <div class="proj-splits">
+                <div class="proj-split"><div class="proj-split-val" id="pt-sw">—</div><div class="proj-split-lbl">🏊 Swim</div></div>
+                <div class="proj-div">+</div>
+                <div class="proj-split"><div class="proj-split-val" id="pt-t1">0:08</div><div class="proj-split-lbl">T1</div></div>
+                <div class="proj-div">+</div>
+                <div class="proj-split"><div class="proj-split-val" id="pt-bk">—</div><div class="proj-split-lbl">🚴 Bike</div></div>
+                <div class="proj-div">+</div>
+                <div class="proj-split"><div class="proj-split-val" id="pt-t2">0:05</div><div class="proj-split-lbl">T2</div></div>
+                <div class="proj-div">+</div>
+                <div class="proj-split"><div class="proj-split-val" id="pt-rn">—</div><div class="proj-split-lbl">🏃 Run</div></div>
+              </div>
+              <div class="proj-total">Total: <strong id="pt-tot">—</strong> <span style="font-size:9px;color:var(--tx3)">· sub-10 goal</span></div>
+            </div>
+            <!-- Threshold Metrics -->
+            <div class="thresh-wrap">
+              <div class="thresh-hdr">Threshold Metrics <button class="thresh-btn" onclick="toggleThresh()">✏️ Edit</button></div>
+              <div class="thresh-display" id="thresh-display">
+                <div class="thresh-chip"><strong id="td-ftp">—</strong><em>FTP (W)</em></div>
+                <div class="thresh-chip"><strong id="td-wkg">—</strong><em>W/kg</em></div>
+                <div class="thresh-chip"><strong id="td-css">—</strong><em>CSS/100m</em></div>
+                <div class="thresh-chip"><strong id="td-tp">—</strong><em>Thr/km</em></div>
+              </div>
+              <div class="thresh-edit" id="thresh-edit">
+                <input id="ti-ftp" type="number" placeholder="FTP (watts, e.g. 280)">
+                <input id="ti-wt" type="number" step="0.1" placeholder="Weight (kg, e.g. 75)">
+                <input id="ti-css" type="text" placeholder="CSS pace (e.g. 1:45)">
+                <input id="ti-tp" type="text" placeholder="Threshold run pace (e.g. 4:05)">
+                <button class="thresh-save" onclick="saveThresh()">Save Thresholds</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /overview -->
+
+    <!-- SESSIONS VIEW -->
+    <div id="view-sessions" class="view">
+      <div id="sessions-list"></div>
+    </div>
+
+    <!-- CHARTS VIEW -->
+    <div id="view-charts" class="view">
+      <div class="charts-grid">
+        <div class="chart-card wide"><h3>CTL Fitness Trend — Chronic Training Load rising toward race</h3><div class="chart-wrap" style="height:120px"><canvas id="ctlChart"></canvas></div></div>
+        <div class="chart-card"><h3>Long Run Progression (km) — sessions &gt;12km</h3><div class="chart-wrap" style="height:140px"><canvas id="longRunChart"></canvas></div></div>
+        <div class="chart-card"><h3>Long Ride Progression (km) — sessions &gt;60km</h3><div class="chart-wrap" style="height:140px"><canvas id="longRideChart"></canvas></div></div>
+        <div class="chart-card"><h3>Best Swim Effort — pace per session &gt;400m</h3><div class="chart-wrap" style="height:140px"><canvas id="swimPaceChart"></canvas></div></div>
+        <div class="chart-card"><h3>Weekly Volume (km swim + ride + run)</h3><div class="chart-wrap" style="height:140px"><canvas id="volChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- LOG VIEW -->
+    <div id="view-log" class="view">
+      <div class="log-wrap" id="log-list"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────
+const CONFIG={clientId:'259380',clientSecret:'d7f8b51837a8255e4278f7a803d5ea7185db6f1c',redirectUri:'https://josswalker-ui.github.io/ironman-dashboard/',scope:'read,activity:read_all',programStart:new Date('2026-05-11T00:00:00'),raceDate:new Date('2026-10-18T00:00:00')};
+
+// ─── VIEW SWITCHING ────────────────────────────────────────────────────────
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelector(`[data-view="${v}"]`).classList.add('active');
+}
+
+// ─── OAUTH ────────────────────────────────────────────────────────────────
+function authUrl(){const p=new URLSearchParams({client_id:CONFIG.clientId,redirect_uri:CONFIG.redirectUri,response_type:'code',approval_prompt:'auto',scope:CONFIG.scope});return`https://www.strava.com/oauth/authorize?${p}`;}
+async function exchCode(code){const r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CONFIG.clientId,client_secret:CONFIG.clientSecret,code,grant_type:'authorization_code'})});if(!r.ok)throw new Error('Token fail');return r.json();}
+async function doRefresh(rt){const r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CONFIG.clientId,client_secret:CONFIG.clientSecret,refresh_token:rt,grant_type:'refresh_token'})});if(!r.ok)throw new Error('Refresh fail');return r.json();}
+function saveTok(d){localStorage.setItem('sat',d.access_token);localStorage.setItem('srt',d.refresh_token);localStorage.setItem('sea',d.expires_at);}
+function clearTok(){['sat','srt','sea'].forEach(k=>localStorage.removeItem(k));}
+async function getToken(){const exp=parseInt(localStorage.getItem('sea')||'0');if(Date.now()/1000<exp-300)return localStorage.getItem('sat');const rt=localStorage.getItem('srt');if(!rt)return null;const d=await doRefresh(rt);saveTok(d);return d.access_token;}
+function logout(){clearTok();location.reload();}
+
+// ─── API ──────────────────────────────────────────────────────────────────
+async function sGet(path,tok){const r=await fetch(`https://www.strava.com/api/v3${path}`,{headers:{Authorization:`Bearer ${tok}`}});if(r.status===401){clearTok();location.reload();}if(!r.ok)throw new Error('API '+r.status);return r.json();}
+async function fetchActs(tok){const after=Math.floor(CONFIG.programStart.getTime()/1000);let p=1,all=[];while(true){const b=await sGet(`/athlete/activities?after=${after}&per_page=100&page=${p}`,tok);if(!b.length)break;all=all.concat(b);if(b.length<100)break;p++;}return all;}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+const RACE=CONFIG.raceDate,START=CONFIG.programStart;
+const TOTAL_DAYS=Math.ceil((RACE-START)/86400000);
+function daysLeft(){return Math.ceil((RACE-new Date())/86400000);}
+function progPct(){return Math.min(100,((new Date()-START)/(RACE-START))*100);}
+function wkNum(){return Math.max(1,Math.min(23,Math.ceil((new Date()-START)/604800000)));}
+function phase(w){if(w<=5)return'Phase 1 — Rebuild';if(w<=10)return'Phase 2 — Extension';if(w<=17)return'Phase 3 — Race-Specific';return'Phase 4 — Taper';}
+function phaseSh(w){if(w<=5)return'P1 Rebuild';if(w<=10)return'P2 Extension';if(w<=17)return'P3 Race-Spec';return'P4 Taper';}
+function wkTargets(w){if(w<=5)return{sw:4.5,bk:65,rn:28};if(w<=10)return{sw:8.5,bk:110,rn:55};if(w<=17)return{sw:10,bk:140,rn:65};return{sw:7,bk:90,rn:40};}
+function monOf(d){const x=new Date(d),day=x.getDay();x.setDate(x.getDate()+(day===0?-6:1-day));x.setHours(0,0,0,0);return x;}
+function wkKey(s){return monOf(new Date(s)).toISOString().slice(0,10);}
+function fmtTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?`${h}h ${m}m`:`${m}m`;}
+function runPace(mps){if(!mps||mps<0.5)return null;const s=1000/mps;return`${Math.floor(s/60)}:${Math.round(s%60).toString().padStart(2,'0')}/km`;}
+function swimPace(mps){if(!mps||mps<0.2)return null;const s=100/mps;return`${Math.floor(s/60)}:${Math.round(s%60).toString().padStart(2,'0')}/100m`;}
+function fmtDate(s){const d=new Date(s),D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${D[d.getDay()]} ${d.getDate()} ${M[d.getMonth()]}`;}
+function sportMeta(t){if(t==='Run')return{e:'🏃',cls:'run'};if(t==='Ride')return{e:'🚴',cls:'bike'};if(t==='Swim')return{e:'🏊',cls:'swim'};return{e:'⚡',cls:'other'};}
+
+// ─── SVG GAUGE ────────────────────────────────────────────────────────────
+function svgGauge(pct,color,val,unit){
+  const r=30,cx=40,cy=40,circ=2*Math.PI*r;
+  const offset=(circ*(1-Math.min(pct,100)/100)).toFixed(1);
+  const fs=val.toString().length>4?11:val.toString().length>3?13:16;
+  return`<svg viewBox="0 0 80 80" width="76" height="76">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2e2e38" stroke-width="5.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="5.5"
+      stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"
+      style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 4px ${color}66)"/>
+    <text x="${cx}" y="${cy-2}" text-anchor="middle" dominant-baseline="middle"
+      fill="#f0f0f2" font-size="${fs}" font-weight="900"
+      font-family="-apple-system,BlinkMacSystemFont,sans-serif">${val}</text>
+    <text x="${cx}" y="${cy+13}" text-anchor="middle"
+      fill="#71717a" font-size="8"
+      font-family="-apple-system,BlinkMacSystemFont,sans-serif">${unit}</text>
+  </svg>`;
+}
+
+function setGaugeCard(id,label,val,unit,pct,color,sub){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.innerHTML=svgGauge(pct,color,val,unit)+`<div class="g-lbl">${label}</div><div class="g-sub">${sub}</div>`;
+}
+
+// ─── CHART DEFAULTS ───────────────────────────────────────────────────────
+Chart.defaults.color='#52525b';
+Chart.defaults.borderColor='#2e2e38';
+let charts={};
+function destroyCharts(){Object.values(charts).forEach(c=>c.destroy());charts={};}
+const gridCol='#2e2e38',tickFont={size:8,family:'-apple-system,sans-serif'};
+const tooltipDefaults={backgroundColor:'#1e1e22',borderColor:'#2e2e38',borderWidth:1,titleColor:'#f0f0f2',bodyColor:'#a1a1aa',padding:8};
+
+// ─── PROGRAM DATA ─────────────────────────────────────────────────────────
+const PROG_START=CONFIG.programStart;
+const PW={
+  1:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Upper 3×12',d:'Bench, row, lat pulldown, shoulder press'},{id:'mon-bike',e:'🚴',l:'Cycle 65min Z2',d:'Easy endurance spin'}],1:[{id:'tue-run',e:'🏃',l:'Run 8km easy Z2',d:'Easy aerobic pace'}],2:[{id:'wed-swim',e:'🏊',l:'Swim 2000m',d:'200m WU · 1×400m · descending sets'},{id:'wed-run',e:'🏃',l:'Easy Run 35min',d:'6km easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'}],3:[{id:'thu-swim',e:'🏊',l:'Swim 1300m (pull buoy)',d:'200m WU · 4×50m · 4×100m · 2×150m'}],4:[{id:'fri-run',e:'🏃',l:'Run 8km lake',d:'Short lake run'},{id:'fri-swim',e:'🏊',l:'Swim 1500m (pull buoy)',d:'200m WU · 3×200m cont · 90s rest'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'PM upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 2hr 30min Z2',d:'PM brick run 20min easy'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 21km easy',d:'Canberra Half — easy long run'}]},
+  2:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Squat, RDL, leg press, lunges'},{id:'mon-bike',e:'🚴',l:'Cycle 65min Z2',d:'Easy spin'},{id:'mon-swim',e:'🏊',l:'Swim 1900m (pull buoy)',d:'2×200m · 2×150m · 4×100m'}],1:[{id:'tue-run',e:'🏃',l:'Run 10km Z2',d:'AM easy aerobic'},{id:'tue-swim',e:'🏊',l:'Swim 1900m (pull buoy)',d:'2×200m · 2×150m · 4×100m'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 40min',d:'8km easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'}],3:[{id:'thu-swim',e:'🏊',l:'Swim 2200m (pull buoy)',d:'1×400m cont (KEY) · 1×300m · 2×200m'}],4:[{id:'fri-run',e:'🏃',l:'Run 8km tempo',d:'4×1km @ 4:15/km'},{id:'fri-swim',e:'🏊',l:'Swim 1400m optional',d:'10×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'PM upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 2hr 45min',d:'PM brick run 25min easy'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 19km',d:'Easy Z2 pace'}]},
+  3:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Lower body strength'},{id:'mon-bike',e:'🚴',l:'Cycle 70min Z2',d:'Easy spin'},{id:'mon-swim',e:'🏊',l:'Swim 2000m',d:'6×100m no buoy · 2×300m pull buoy'}],1:[{id:'tue-run',e:'🏃',l:'Run 8km tempo',d:'4×1km @ 4:15/km'},{id:'tue-swim',e:'🏊',l:'Swim 1400m no buoy',d:'8×100m no buoy'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 40min',d:'8km easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'}],3:[{id:'thu-swim',e:'🏊',l:'Swim 2600m',d:'1×600m (KEY) · 1×400m · 1×300m · 1×200m'}],4:[{id:'fri-run',e:'🏃',l:'Run 8km easy',d:'Easy'},{id:'fri-swim',e:'🏊',l:'Swim 1400m optional',d:'10×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'PM upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 3hr',d:'PM brick run 30min easy'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 20km',d:'Easy Z2 pace'}]},
+  4:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×12 (DELOAD)',d:'Lighter weight'},{id:'mon-bike',e:'🚴',l:'Cycle 45min easy',d:'Easy spin'},{id:'mon-swim',e:'🏊',l:'Swim 1200m',d:'4×200m mix buoy/no buoy'}],1:[{id:'tue-run',e:'🏃',l:'Run 8km Z1 easy',d:'Very easy recovery'},{id:'tue-swim',e:'🏊',l:'Swim 1000m easy',d:'6×100m easy'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 25min',d:'5km easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 45min Z2',d:'PM easy spin'}],3:[{id:'thu-swim',e:'🏊',l:'Swim 1700m no buoy',d:'500m cont · 400m easy · 200m easy'}],4:[{id:'fri-run',e:'🏃',l:'Run 8km easy',d:'Easy'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×12 easy',d:'PM light upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 1hr 45min easy',d:'No brick — deload week'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 14km easy',d:'Easy Z2 — deload'}]},
+  5:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Lower body strength'},{id:'mon-bike',e:'🚴',l:'Cycle 75min Z2',d:'Easy spin'},{id:'mon-swim',e:'🏊',l:'Swim 2200m',d:'500m×2 continuous · 4×100m'}],1:[{id:'tue-run',e:'🏃',l:'Run 12km Z2',d:'AM easy aerobic'},{id:'tue-swim',e:'🏊',l:'Swim 1900m no buoy',d:'3×300m · 4×100m'}],2:[{id:'wed-bike',e:'🚴',l:'Cycle 40min Z2',d:'Easy spin'},{id:'wed-swim',e:'🏊',l:'Swim 2900m no buoy',d:'1×800m (KEY) · 1×600m · 1×400m · 1×200m'}],3:[{id:'thu-run',e:'🏃',l:'Easy Run 40min',d:'Easy pace'}],4:[{id:'fri-run',e:'🏃',l:'Long Run 21km',d:'Easy Z2'},{id:'fri-swim',e:'🏊',l:'Swim 1600m',d:'12×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'PM upper body'}],5:[{id:'sat-afl',e:'🏉',l:'2× AFL Games',d:'Weekend games'},{id:'sat-bike',e:'🚴',l:'Cycle 30min Z2',d:'Easy spin'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 3hr',d:'PM brick run 30min easy'}]},
+  6:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×15',d:'Add single-leg RDL, step-ups, Nordic curl'},{id:'mon-bike',e:'🚴',l:'Cycle 80min sweetspot',d:'2×20min @ 88% FTP'},{id:'mon-swim',e:'🏊',l:'Swim 2600m',d:'1×1000m cont · 1×600m · 1×400m'}],1:[{id:'tue-run',e:'🏃',l:'Run 13km',d:'6km @ 4:15/km race pace'},{id:'tue-mob',e:'🧘',l:'Mobility 25min',d:'Foam roll hip flexors + calves'},{id:'tue-swim',e:'🏊',l:'Swim 2000m no buoy',d:'4×200m · 6×100m'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 45min',d:'Easy pace + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 70min Z2',d:'PM easy spin'}],3:[{id:'thu-ride',e:'🚴',l:'Thu Ride 50min easy Z2',d:'Second mid-week ride'},{id:'thu-swim',e:'🏊',l:'Swim 3000m no buoy',d:'1×1200m (KEY) · 1×800m · 1×400m'}],4:[{id:'fri-run',e:'🏃',l:'Run 9km easy',d:'Easy'},{id:'fri-swim',e:'🏊',l:'Swim 2100m',d:'3×300m · 6×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×15',d:'Cable flys · band pull-aparts · ext rotation'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 3hr 30min',d:'Brick run 30min (last 10min @ race pace)'},{id:'sat-afl',e:'🏉',l:'AFL Game',d:'If scheduled'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 22km',d:'Easy Z2 pace'}]},
+  7:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×15',d:'Lower body strength'},{id:'mon-bike',e:'🚴',l:'Cycle 85min sweetspot',d:'2×20min @ 88% FTP'},{id:'mon-swim',e:'🏊',l:'Swim 2800m',d:'2×600m · 2×400m · 4×100m'}],1:[{id:'tue-run',e:'🏃',l:'Run 13km Z2',d:'Easy aerobic'},{id:'tue-mob',e:'🧘',l:'Foam roll + hip stretch 25min',d:'Recovery'},{id:'tue-swim',e:'🏊',l:'Swim 1800m no buoy',d:'4×50m drill · 5×200m'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 45min',d:'Easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 75min Z2',d:'PM easy spin'}],3:[{id:'thu-ride',e:'🚴',l:'Thu Ride 55min Z2',d:'Second mid-week ride'},{id:'thu-swim',e:'🏊',l:'Swim 3000m no buoy',d:'1×1500m (KEY) · 1×800m · 1×400m'}],4:[{id:'fri-run',e:'🏃',l:'Run 9km lake',d:'Easy lake run'},{id:'fri-swim',e:'🏊',l:'Swim 1900m optional',d:'3×300m · 4×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×15',d:'PM upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 3hr 45min',d:'Brick run 35min (last 15min @ race pace)'},{id:'sat-afl',e:'🏉',l:'AFL Game',d:'If scheduled'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 24km',d:'Easy Z2 pace'}]},
+  8:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×12 (DELOAD)',d:'Light week'},{id:'mon-bike',e:'🚴',l:'Cycle 50min easy',d:'Easy spin'},{id:'mon-swim',e:'🏊',l:'Swim 1600m',d:'4×300m easy'}],1:[{id:'tue-run',e:'🏃',l:'Run 9km Z1',d:'Very easy recovery'},{id:'tue-swim',e:'🏊',l:'Swim 1000m easy',d:'6×100m easy'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 30min',d:'Easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 60min Z2',d:'PM easy spin'}],3:[{id:'thu-swim',e:'🏊',l:'Swim 2400m no buoy',d:'1×1000m easy · 1×600m · 1×300m'}],4:[{id:'fri-run',e:'🏃',l:'Run 6km easy',d:'Easy'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×12 easy',d:'PM light upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 2hr easy',d:'No brick — deload'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 16km easy',d:'Easy Z2 — deload'}]},
+  9:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×15',d:'Lower body strength'},{id:'mon-bike',e:'🚴',l:'Cycle 85min sweetspot',d:'2×20min @ 88% FTP'},{id:'mon-swim',e:'🏊',l:'Swim 3400m',d:'1×2000m (KEY) · 1×600m · 1×400m'}],1:[{id:'tue-run',e:'🏃',l:'Run 14km',d:'8km @ race pace 4:15/km'},{id:'tue-swim',e:'🏊',l:'Swim 2000m no buoy',d:'4×50m drill · 4×300m'}],2:[{id:'wed-run',e:'🏃',l:'Easy Run 45min',d:'Easy + PT session'},{id:'wed-bike',e:'🚴',l:'Cycle 75min Z2',d:'PM easy spin'}],3:[{id:'thu-ride',e:'🚴',l:'Thu Ride 60min Z2',d:'Second mid-week ride'},{id:'thu-swim',e:'🏊',l:'Swim 3900m no buoy',d:'1×2400m (KEY) · 1×800m race pace · 1×400m easy'}],4:[{id:'fri-run',e:'🏃',l:'Run 10km easy',d:'Easy'},{id:'fri-swim',e:'🏊',l:'Swim 2200m',d:'3×400m · 4×100m'},{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×15',d:'PM upper body'}],5:[{id:'sat-ride',e:'🚴',l:'Long Ride 4hr',d:'Brick run 40min (last 20min @ race pace)'},{id:'sat-afl',e:'🏉',l:'AFL Game',d:'If scheduled'}],6:[{id:'sun-run',e:'🏃',l:'Long Run 26km',d:'Easy Z2 pace'}]},
+  10:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×15',d:'Lower body'},{id:'mon-swim',e:'🏊',l:'Swim 3900m',d:'1×2400m cont · 1×600m · 4×100m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim 1600m',d:'4×300m stroke length'},{id:'tue-bike',e:'🚴',l:'Cycle 60min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery/Mobility 30min',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min',d:'8×100m · 6×50m fast'},{id:'wed-run',e:'🏃',l:'Tempo Run 10km',d:'4km @ race pace'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 90min + Run 25min',d:'@ race effort 4:15/km'},{id:'thu-mob',e:'🧘',l:'Recovery 30min',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×15',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim 1900m',d:'3×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 28km',d:'Easy aerobic pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 3hr Z2',d:'Endurance pace'}]},
+  11:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Phase 3 — maintain only'},{id:'mon-swim',e:'🏊',l:'Swim ~4000m',d:'1×2600m (KEY) · 1×600m · 1×400m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~2000m (with Jake)',d:'6×200m last 50m race pace · 6×50m fast'},{id:'tue-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Foam roll + ITB 30min',d:'Recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min easy',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 50min',d:'PM race pace intervals'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: Cycle 2hr + Run 30min',d:'@ race pace 4:15/km'},{id:'thu-mob',e:'🧘',l:'Foam roll + glutes + calves',d:'Recovery'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~1800m',d:'3×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 28km',d:'Easy Z2 pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 4hr 30min',d:'Endurance pace'}]},
+  12:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×12 (DELOAD)',d:'Light deload'},{id:'mon-swim',e:'🏊',l:'Swim ~2300m easy',d:'1×1200m easy · 1×600m · 1×300m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1000m easy (with Jake)',d:'4×200m easy'},{id:'tue-bike',e:'🚴',l:'Cycle 45min easy',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Stretch + foam roll 35min',d:'Recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Easy Swim 20min',d:'AM'},{id:'wed-run',e:'🏃',l:'Easy Run 30min',d:'PM very easy'}],3:[{id:'thu-bike',e:'🚴',l:'Easy Cycle 60min (no brick)',d:'Deload — no brick'},{id:'thu-mob',e:'🧘',l:'Stretch + foam roll 35min',d:'Recovery'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×12 easy',d:'AM light upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~1200m easy',d:'4×200m easy'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 18km easy',d:'Very easy Z2'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 2hr 15min easy',d:'Easy endurance'}]},
+  13:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Maintain strength'},{id:'mon-swim',e:'🏊',l:'Swim ~4200m',d:'1×3000m (KEY) · 1×600m · 1×400m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~2200m (with Jake)',d:'4×300m even splits · 4×100m fast'},{id:'tue-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery foam roll',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 50min',d:'PM race pace work'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 2hr 30min + Run 35min',d:'@ race effort 4:15/km'},{id:'thu-mob',e:'🧘',l:'Recovery foam roll',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2200m',d:'4×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 29km',d:'Easy Z2 pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 5hr',d:'Race nutrition — eat every 45min'}]},
+  14:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Maintain strength'},{id:'mon-swim',e:'🏊',l:'Swim ~4400m',d:'1×3200m (KEY) · 1×600m · 1×400m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~2400m',d:'5×300m last 100m race pace · 4×100m'},{id:'tue-bike',e:'🚴',l:'Cycle 60min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 50min',d:'PM'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 2hr 30min + Run 40min',d:'@ race effort 4:15/km'},{id:'thu-mob',e:'🧘',l:'Recovery',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2400m',d:'5×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 30km',d:'Easy Z2 pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 5hr 30min',d:'Race nutrition practice'}]},
+  15:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Maintain strength'},{id:'mon-swim',e:'🏊',l:'Swim ~4700m',d:'1×3500m (KEY) · 1×600m · 1×400m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~2500m (with Jake)',d:'3×500m @ 1:50/100m · 4×100m fast'},{id:'tue-bike',e:'🚴',l:'Cycle 65min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Full lower body 35min',d:'Recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 50min',d:'PM'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 2hr 45min + Run 40min',d:'@ race effort 4:15/km'},{id:'thu-mob',e:'🧘',l:'Full upper body + shoulder 35min',d:'Recovery'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2800m',d:'6×400m @ 1:50/100m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 32km — PEAK LOAD',d:'Easy Z2 — nail nutrition'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 5hr 30min',d:'Race nutrition — every 45min'}]},
+  16:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×12 (DELOAD)',d:'Final deload before taper'},{id:'mon-swim',e:'🏊',l:'Swim ~2500m easy',d:'1×1500m easy · 1×500m · 1×300m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1000m easy (Jake)',d:'6×100m easy'},{id:'tue-bike',e:'🚴',l:'Cycle 45min easy',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Stretch + foam roll 35min',d:'Recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Easy Swim 20min',d:'AM'},{id:'wed-run',e:'🏃',l:'Easy Run 30min',d:'PM very easy'}],3:[{id:'thu-bike',e:'🚴',l:'Easy Cycle 60min (no brick)',d:'No brick — deload'},{id:'thu-mob',e:'🧘',l:'Stretch + foam roll 35min',d:'Recovery'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×12 easy',d:'AM light upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~1200m easy',d:'4×200m easy'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 18km easy',d:'Very easy Z2'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 2hr 30min easy',d:'Easy endurance'}]},
+  17:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 3×12',d:'Last big week'},{id:'mon-swim',e:'🏊',l:'Swim ~5000m',d:'1×3800m (RACE DISTANCE) · 1×600m · 1×400m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~2600m (with Jake)',d:'3×600m race pace · 4×100m fast'},{id:'tue-bike',e:'🚴',l:'Cycle 60min Z2',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery 30min',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 45min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 45min',d:'PM'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 3hr + Run 45min',d:'FULL RACE SIMULATION @ 4:15/km'},{id:'thu-mob',e:'🧘',l:'Recovery 30min',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 3×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2300m',d:'3×500m race pace · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 30km',d:'Easy Z2 pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 6hr — DRESS REHEARSAL',d:'Full nutrition plan'}]},
+  18:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×12 — TAPER BEGINS',d:'Reduce volume'},{id:'mon-swim',e:'🏊',l:'Swim ~4100m',d:'1×3000m · 1×500m · 1×300m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1900m (with Jake)',d:'4×300m last 100m race pace · 4×100m'},{id:'tue-bike',e:'🚴',l:'Cycle 55min',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery 30min',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 40min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 40min',d:'PM'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 2hr + Run 30min',d:'@ race effort'},{id:'thu-mob',e:'🧘',l:'Recovery 30min',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2000m',d:'3×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 26km',d:'Easy Z2 pace'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 4hr 30min',d:'Endurance pace'}]},
+  19:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 2×10',d:'Taper — sets reducing'},{id:'mon-swim',e:'🏊',l:'Swim ~3700m',d:'1×2600m · 1×500m · 1×300m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1700m (with Jake)',d:'3×300m · 4×100m race pace'},{id:'tue-bike',e:'🚴',l:'Cycle 50min',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Recovery 25min',d:'Full body'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Swim 35min',d:'AM'},{id:'wed-run',e:'🏃',l:'Tempo Run 35min',d:'PM'}],3:[{id:'thu-brick',e:'🚴',l:'Brick: 90min + Run 25min',d:'@ race effort'},{id:'thu-mob',e:'🧘',l:'Recovery 25min',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 2×10',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~2000m',d:'3×400m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 22km',d:'Easy Z2 — legs feeling fresher'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 3hr 30min',d:'Endurance pace'}]},
+  20:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 1×12',d:'3 weeks out — just moving the muscle'},{id:'mon-swim',e:'🏊',l:'Swim ~3200m',d:'1×2000m · 1×600m · 4×100m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1600m (with Jake)',d:'4×200m · 4×100m easy'},{id:'tue-bike',e:'🚴',l:'Cycle 40min easy',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Stretch 25min',d:'Recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Easy Swim 20min',d:'AM'},{id:'wed-run',e:'🏃',l:'Easy Run 25min',d:'PM very easy'}],3:[{id:'thu-bike',e:'🚴',l:'Easy Ride 60min + 15min jog',d:'Light session'},{id:'thu-mob',e:'🧘',l:'Recovery 25min',d:'Full body'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 1×12',d:'AM upper body'},{id:'fri-swim',e:'🏊',l:'Swim ~1600m',d:'4×200m · 4×100m'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 16km easy',d:'Legs feel weird — normal'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 2hr 30min easy',d:'Easy endurance'}]},
+  21:{0:[{id:'mon-gym',e:'🏋️',l:'Gym Lower 1×10',d:'2 weeks out'},{id:'mon-swim',e:'🏊',l:'Swim ~2900m',d:'1×1800m · 4×200m'}],1:[{id:'tue-swim',e:'🏊',l:'Swim ~1200m easy (with Jake)',d:'4×200m easy'},{id:'tue-bike',e:'🚴',l:'Cycle 35min easy',d:'PM easy spin'},{id:'tue-mob',e:'🧘',l:'Stretch + foam roll 20min',d:'Light recovery'}],2:[{id:'wed-pt',e:'🧘',l:'PT + Easy Swim 20min',d:'AM'},{id:'wed-run',e:'🏃',l:'Easy Run 20min',d:'PM very easy'}],3:[{id:'thu-bike',e:'🚴',l:'Easy Ride 45min + 10min jog',d:'Light — carb loading starts Thu'},{id:'thu-mob',e:'🧘',l:'Foam roll 20min',d:'Light recovery'}],4:[{id:'fri-gym',e:'🏋️',l:'Gym Upper 1×10 — last gym',d:'Last gym session'},{id:'fri-swim',e:'🏊',l:'Swim ~1200m easy',d:'4×200m easy'}],5:[{id:'sat-run',e:'🏃',l:'Long Run 14km easy',d:'Legs ITCHY — good sign'}],6:[{id:'sun-ride',e:'🚴',l:'Long Ride 2hr easy',d:'Easy — carb load continues'}]},
+  22:{0:[{id:'mon-swim',e:'🏊',l:'Easy Swim 30min — SKIP GYM',d:'1×800m easy · 4×100m easy'},{id:'mon-bike',e:'🚴',l:'Easy Cycle 25min spin',d:'Very light — RACE WEEK'}],1:[{id:'tue-swim',e:'🏊',l:'Easy Swim 20min',d:'4×100m very easy'},{id:'tue-run',e:'🏃',l:'Run 4km easy strides',d:'Eat every 3hrs · hydrate well'}],2:[{id:'wed-pt',e:'🧘',l:'PT (no intensity) + jog 15min',d:'REST all afternoon'}],3:[{id:'thu-rest',e:'😴',l:'REST ALL DAY',d:'Full rest — hydrate · eat · sleep 8hrs'}],4:[{id:'fri-swim',e:'🏊',l:'Swim 400m course preview',d:'Rack bike — early bed 8:30pm'}],5:[{id:'sat-rest',e:'😴',l:'REST',d:'Race tomorrow — mental prep · visualise splits'}]},
+  23:{0:[{id:'mon-swim',e:'🏊',l:'Easy Swim 20min',d:'4×100m relaxed'},{id:'mon-walk',e:'🚶',l:'Short walk PM',d:'Light movement only'}],1:[{id:'tue-run',e:'🏃',l:'Easy Run 10min strides',d:'PM REST — light stretch only'}],2:[{id:'wed-rest',e:'😴',l:'REST ALL DAY',d:'Full rest — eat · hydrate · sleep'}],3:[{id:'thu-rest',e:'😴',l:'REST ALL DAY',d:'Full rest — mental prep'}],4:[{id:'fri-rest',e:'😴',l:'REST — early bed',d:'Visualise: 1:10 swim / 5:30 bike / 3:00 run'}],5:[{id:'sat-prep',e:'🏊',l:'400m easy open water',d:'15min easy bike spin · rack gear · early bed 8pm'}],6:[{id:'race',e:'🏁',l:'RACE DAY — IRONMAN PORT MACQUARIE',d:'Trust 23 weeks. Swim easy 500m. Bike controlled 2hrs. Run 4:15/km.'}]}
+};
+
+function getWkForDate(d){return Math.ceil((d-PROG_START)/604800000);}
+function getPDay(d){const dow=d.getDay();return dow===0?6:dow-1;}
+function getSessForDate(d){const wk=getWkForDate(d);if(wk<1||wk>23)return[];const wd=PW[wk];if(!wd)return[];return wd[getPDay(d)]||[];}
+
+// ─── SESSION STATE ────────────────────────────────────────────────────────
+function sk(ds,id){return`im_${ds}_${id}`;}
+function gss(ds,id){const r=localStorage.getItem(sk(ds,id));return r?JSON.parse(r):{checked:false,notes:'',lbl:null,det:null};}
+function sss(ds,id,state){localStorage.setItem(sk(ds,id),JSON.stringify(state));}
+
+function dotCls(e){
+  if(e==='🏊')return'dot-sw';if(e==='🚴')return'dot-bk';if(e==='🏃')return'dot-rn';
+  if(e==='🏋️')return'dot-gy';return'dot-xx';
+}
+function stripeCls(e){
+  if(e==='🏊')return'fss-sw';if(e==='🚴')return'fss-bk';if(e==='🏃')return'fss-rn';
+  if(e==='🏋️')return'fss-gy';if(e==='🏉')return'fss-af';return'fss-xx';
+}
+
+// ─── TODAY SESSIONS ───────────────────────────────────────────────────────
+const DNAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function renderToday(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const ds=today.toISOString().slice(0,10);
+  const sess=getSessForDate(today);
+  const dow=today.getDay();
+  document.getElementById('today-date').textContent=`${DNAMES[dow]} ${today.getDate()} ${MNAMES[today.getMonth()]}`;
+  const el=document.getElementById('today-sessions');
+  if(!el)return;
+  if(!sess.length){el.innerHTML=`<div class="rest-day"><div class="rest-emoji">😴</div><div class="rest-txt">Rest day — recover well</div></div>`;return;}
+  el.innerHTML=sess.map(s=>{
+    const state=gss(ds,s.id);
+    const lbl=state.lbl??s.l,det=state.det??s.d;
+    const uid=`t-${ds}-${s.id}`;
+    return`<div class="sess-row${state.checked?' done-row':''}" id="sr-${uid}">
+      <div class="sport-dot ${dotCls(s.e)}"></div>
+      <div class="sess-emoji">${s.e}</div>
+      <div class="sess-info">
+        <div class="sess-lbl${state.checked?' done':''}" id="tl-${uid}" onclick="toggleTodayChk('${ds}','${s.id}','${uid}')">${lbl}</div>
+        <div class="sess-det">${det}</div>
+      </div>
+      <div class="sess-chk${state.checked?' done':''}" id="tc-${uid}" onclick="toggleTodayChk('${ds}','${s.id}','${uid}')"></div>
+      <div class="sess-expand-btn" id="tea-${uid}" onclick="toggleTodayNotes('${uid}')">▾</div>
+    </div>
+    <div class="sess-notes" id="sn-${uid}">
+      <textarea placeholder="Notes — HR · pace · how it felt…" oninput="saveNote('${ds}','${s.id}',this.value)">${state.notes||''}</textarea>
+      <div class="edit-fields" id="ef-${uid}">
+        <input type="text" value="${(lbl).replace(/"/g,'&quot;')}" placeholder="Session name" oninput="applyEdit('${ds}','${s.id}','${uid}','lbl',this.value,'tl')">
+        <input type="text" value="${(det).replace(/"/g,'&quot;')}" placeholder="Prescription" oninput="applyEdit('${ds}','${s.id}','${uid}','det',this.value,'')">
+      </div>
+      <div class="sess-note-btns">
+        <button class="snbtn" onclick="toggleTodayEdit('${uid}')">✏️ Edit</button>
+        <button class="snbtn" onclick="resetEdit('${ds}','${s.id}','${uid}','${s.l.replace(/'/g,"\\'")}','${s.d.replace(/'/g,"\\'")}')">↺ Reset</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTodayChk(ds,id,uid){
+  const state=gss(ds,id);state.checked=!state.checked;sss(ds,id,state);
+  document.getElementById(`tc-${uid}`)?.classList.toggle('done',state.checked);
+  document.getElementById(`tl-${uid}`)?.classList.toggle('done',state.checked);
+  document.getElementById(`sr-${uid}`)?.classList.toggle('done-row',state.checked);
+}
+function toggleTodayNotes(uid){
+  const n=document.getElementById(`sn-${uid}`),a=document.getElementById(`tea-${uid}`);
+  n.classList.toggle('open');a.classList.toggle('open');
+}
+function toggleTodayEdit(uid){
+  const ef=document.getElementById(`ef-${uid}`);
+  ef.style.display=ef.style.display==='block'?'none':'block';
+  if(ef.style.display==='block')ef.querySelector('input').focus();
+}
+function applyEdit(ds,id,uid,field,value,lblId){
+  const state=gss(ds,id);state[field]=value;sss(ds,id,state);
+  if(lblId&&document.getElementById(`${lblId}-${uid}`))document.getElementById(`${lblId}-${uid}`).textContent=value;
+}
+function saveNote(ds,id,value){const state=gss(ds,id);state.notes=value;sss(ds,id,state);}
+function resetEdit(ds,id,uid,oLbl,oDet){
+  const state=gss(ds,id);state.lbl=null;state.det=null;sss(ds,id,state);
+  const ef=document.getElementById(`ef-${uid}`);
+  if(ef){const inp=ef.querySelectorAll('input');if(inp[0])inp[0].value=oLbl;if(inp[1])inp[1].value=oDet;}
+  const tl=document.getElementById(`tl-${uid}`);if(tl)tl.textContent=oLbl;
+}
+
+// ─── SESSIONS VIEW ────────────────────────────────────────────────────────
+function renderSessionsView(){
+  const el=document.getElementById('sessions-list');
+  if(!el)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=today.toISOString().slice(0,10);
+  let html='';
+  for(let i=0;i<14;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const ds=d.toISOString().slice(0,10);
+    const sess=getSessForDate(d);
+    if(!sess.length)continue;
+    const wk=getWkForDate(d),dow=d.getDay();
+    const hdrCls=ds===todayStr?' today-hdr':'';
+    const dayLbl=ds===todayStr?`TODAY — ${DNAMES[dow]} ${d.getDate()} ${MNAMES[d.getMonth()]} · Week ${wk}`:`${DNAMES[dow]} ${d.getDate()} ${MNAMES[d.getMonth()]} · Week ${wk}`;
+    html+=`<div class="session-block"><div class="session-block-hdr${hdrCls}">${dayLbl}</div>`;
+    sess.forEach(s=>{
+      const state=gss(ds,s.id),lbl=state.lbl??s.l,det=state.det??s.d;
+      const uid=`fs-${ds}-${s.id}`;
+      html+=`<div class="full-sess-row${state.checked?' done-row':''}" id="fsr-${uid}" onclick="handleFullSess('${ds}','${s.id}','${uid}',event)">
+        <div class="fs-stripe ${stripeCls(s.e)}"></div>
+        <div class="fs-emoji">${s.e}</div>
+        <div class="fs-info">
+          <div class="fs-lbl${state.checked?' done':''}" id="fl-${uid}">${lbl}</div>
+          <div class="fs-det">${det}</div>
+        </div>
+        <div class="fs-chk${state.checked?' done':''}" id="fc-${uid}"></div>
+        <div class="fs-arr" id="fa-${uid}">▾</div>
+      </div>
+      <div class="fs-expand" id="fe-${uid}">
+        <textarea placeholder="Notes — HR · pace · how it felt…" oninput="saveNote('${ds}','${s.id}',this.value)">${state.notes||''}</textarea>
+        <div class="fs-edit-wrap" id="few-${uid}">
+          <input type="text" value="${lbl.replace(/"/g,'&quot;')}" placeholder="Session name" oninput="applyFsEdit('${ds}','${s.id}','${uid}','lbl',this.value)">
+          <input type="text" value="${det.replace(/"/g,'&quot;')}" placeholder="Prescription" oninput="applyFsEdit('${ds}','${s.id}','${uid}','det',this.value)">
+        </div>
+        <div class="fs-btns">
+          <button class="fsbtn primary" onclick="toggleFsEdit('${uid}');event.stopPropagation()">✏️ Edit</button>
+          <button class="fsbtn" onclick="resetFsEdit('${ds}','${s.id}','${uid}','${s.l.replace(/'/g,"\\'")}','${s.d.replace(/'/g,"\\'")}');event.stopPropagation()">↺ Reset</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  el.innerHTML=html||'<div class="empty">No sessions in next 14 days</div>';
+}
+
+function handleFullSess(ds,id,uid,event){
+  if(event.target.closest('.fs-expand'))return;
+  if(event.target.closest('.fs-arr')||event.target.id===`fa-${uid}`){
+    document.getElementById(`fe-${uid}`)?.classList.toggle('open');
+    document.getElementById(`fa-${uid}`)?.classList.toggle('open');
+    return;
+  }
+  const state=gss(ds,id);state.checked=!state.checked;sss(ds,id,state);
+  document.getElementById(`fc-${uid}`)?.classList.toggle('done',state.checked);
+  document.getElementById(`fl-${uid}`)?.classList.toggle('done',state.checked);
+  document.getElementById(`fsr-${uid}`)?.classList.toggle('done-row',state.checked);
+}
+function toggleFsEdit(uid){const w=document.getElementById(`few-${uid}`);w.style.display=w.style.display==='block'?'none':'block';if(w.style.display==='block')w.querySelector('input').focus();}
+function applyFsEdit(ds,id,uid,field,value){
+  const state=gss(ds,id);state[field]=value;sss(ds,id,state);
+  if(field==='lbl'&&document.getElementById(`fl-${uid}`))document.getElementById(`fl-${uid}`).textContent=value;
+}
+function resetFsEdit(ds,id,uid,oLbl,oDet){
+  const state=gss(ds,id);state.lbl=null;state.det=null;sss(ds,id,state);
+  const w=document.getElementById(`few-${uid}`);
+  if(w){const i=w.querySelectorAll('input');if(i[0])i[0].value=oLbl;if(i[1])i[1].value=oDet;}
+  const fl=document.getElementById(`fl-${uid}`);if(fl)fl.textContent=oLbl;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────
+function render(acts){
+  destroyCharts();
+  const wk=wkNum(),dl=daysLeft(),pct=progPct();
+  const tgts=wkTargets(wk);
+
+  // Header badges
+  document.getElementById('sb-days').textContent=dl;
+  document.getElementById('b-week').textContent=`Wk ${wk}`;
+  document.getElementById('b-phase').textContent=phaseSh(wk);
+  document.getElementById('b-pct').textContent=`${pct.toFixed(0)}%`;
+  document.getElementById('last-updated').textContent=new Date().toLocaleTimeString();
+
+  const thisWk=monOf(new Date()).toISOString().slice(0,10);
+  const weekly={};
+  let totSw=0,totBk=0,totRn=0,totSwT=0,totBkT=0,totRnT=0;
+  let bestSw=0,bestBk=0,bestRn=0;
+  let wkSw=0,wkBk=0,wkRn=0;
+  const dailyRE={};
+  const longRuns=[],longRides=[],bestSwims=[];
+
+  for(const a of acts){
+    const dist=a.distance||0,time=a.moving_time||0,re=a.suffer_score||0;
+    const sport=a.sport_type||a.type;
+    const wk2=wkKey(a.start_date_local);
+    const day=a.start_date_local.slice(0,10);
+    if(!weekly[wk2])weekly[wk2]={sw:0,bk:0,rn:0,runSpeeds:[],swimSpeeds:[]};
+    dailyRE[day]=(dailyRE[day]||0)+re;
+    if(sport==='Swim'){
+      weekly[wk2].sw+=dist/1000;totSw+=dist;totSwT+=time;
+      if(dist>bestSw)bestSw=dist;
+      if(dist>400&&a.average_speed>0.3){
+        weekly[wk2].swimSpeeds.push(a.average_speed);
+        bestSwims.push({d:day,pace:+(100/a.average_speed/60).toFixed(3)});
+      }
+      if(wk2===thisWk)wkSw+=dist/1000;
+    }else if(sport==='Ride'){
+      weekly[wk2].bk+=dist/1000;totBk+=dist;totBkT+=time;
+      if(dist>bestBk)bestBk=dist;
+      if(dist>60000)longRides.push({d:day,km:+(dist/1000).toFixed(1)});
+      if(wk2===thisWk)wkBk+=dist/1000;
+    }else if(sport==='Run'){
+      weekly[wk2].rn+=dist/1000;totRn+=dist;totRnT+=time;
+      if(dist>bestRn)bestRn=dist;
+      if(a.average_speed>1)weekly[wk2].runSpeeds.push(a.average_speed);
+      if(dist>12000)longRuns.push({d:day,km:+(dist/1000).toFixed(1)});
+      if(wk2===thisWk)wkRn+=dist/1000;
+    }
+  }
+  longRuns.sort((a,b)=>a.d>b.d?1:-1);
+  longRides.sort((a,b)=>a.d>b.d?1:-1);
+  bestSwims.sort((a,b)=>a.d>b.d?1:-1);
+
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+
+  // ── Gauges ──
+  // Countdown ring: % of program done
+  setGaugeCard('gc-days','Countdown',dl,'days to go',pct,'#FC4C02',`${pct.toFixed(0)}% done`);
+  // Weekly swim
+  const swPct=Math.min(100,(wkSw/tgts.sw)*100);
+  setGaugeCard('gc-sw','Week Swim',wkSw.toFixed(1),'km',swPct,'#3b9dff',`target ${tgts.sw}km`);
+  // Weekly ride
+  const bkPct=Math.min(100,(wkBk/tgts.bk)*100);
+  setGaugeCard('gc-bk','Week Ride',wkBk.toFixed(0),'km',bkPct,'#FC4C02',`target ${tgts.bk}km`);
+  // Weekly run
+  const rnPct=Math.min(100,(wkRn/tgts.rn)*100);
+  setGaugeCard('gc-rn','Week Run',wkRn.toFixed(1),'km',rnPct,'#22c55e',`target ${tgts.rn}km`);
+
+  // ── Training Load + TSB ──
+  const allDays=[],d0=new Date('2026-05-11');
+  for(let d=new Date(d0);d<=new Date();d.setDate(d.getDate()+1))allDays.push(d.toISOString().slice(0,10));
+  const reArr=allDays.map(d=>dailyRE[d]||0);
+  function rolling(arr,n){return arr.map((_,i)=>{const sl=arr.slice(Math.max(0,i-n+1),i+1);return sl.reduce((a,b)=>a+b,0)/sl.length;});}
+  const atl=rolling(reArr,7),ctl=rolling(reArr,28);
+  const latestATL=atl[atl.length-1]||0,latestCTL=ctl[ctl.length-1]||0;
+  const tsb=latestCTL-latestATL;
+  document.getElementById('atl-val').textContent=latestATL.toFixed(0);
+  document.getElementById('ctl-val').textContent=latestCTL.toFixed(0);
+  // TSB display
+  const tsbEl=document.getElementById('tsb-val'),tsbBg=document.getElementById('tsb-badge');
+  if(tsbEl)tsbEl.textContent=(tsb>=0?'+':'')+tsb.toFixed(0);
+  let tsbCls,tsbTxt;
+  if(tsb>10){tsbCls='tsb-fr';tsbTxt='Very Fresh';}
+  else if(tsb>3){tsbCls='tsb-fr';tsbTxt='Fresh';}
+  else if(tsb>=-3){tsbCls='tsb-bl';tsbTxt='Balanced';}
+  else if(tsb>=-12){tsbCls='tsb-ti';tsbTxt='Training';}
+  else{tsbCls='tsb-fa';tsbTxt='Fatigued';}
+  if(tsbBg){tsbBg.className=`tsb-badge ${tsbCls}`;tsbBg.textContent=tsbTxt;}
+  if(tsbEl)tsbEl.style.color=tsbCls==='tsb-fr'?'#22c55e':tsbCls==='tsb-bl'?'#3b9dff':tsbCls==='tsb-ti'?'#f59e0b':'#ef4444';
+  const loadPct=Math.min(100,latestCTL/80*100);
+  setTimeout(()=>{const lb=document.getElementById('load-bar');if(lb)lb.style.width=loadPct+'%';},200);
+
+  // ── IM Readiness Score ──
+  // Components: CTL fitness, long session readiness, consistency, pace vs goal
+  const ctlComp=Math.min(100,latestCTL/80*100)*0.25;
+  const swComp=Math.min(100,(bestSw/3800)*100)*0.15;
+  const bkComp=Math.min(100,(bestBk/180000)*100)*0.15;
+  const rnComp=Math.min(100,(bestRn/42000)*100)*0.15;
+  const weeksWithData=Object.values(weekly).filter(w=>w.sw+w.bk+w.rn>0).length;
+  const consistencyComp=Math.min(100,(weeksWithData/8)*100)*0.10;
+  // Pace component: how close projected finish is to sub-10 goal
+  // Will be computed after projected time is known — use closure
+  let paceComp=0; // filled in below after projected time calc
+  // Compute readiness without pace component first, then add it
+  const baseReady=ctlComp+swComp+bkComp+rnComp+consistencyComp;
+  // (pace component added below after projection calc)
+
+  const wmEl=document.getElementById('wk-mini'),phEl=document.getElementById('phase-mini2');
+  if(wmEl)wmEl.textContent=wk;if(phEl)phEl.textContent=phaseSh(wk);
+  const rdEl=document.getElementById('ready-days');if(rdEl)rdEl.textContent=dl;
+
+  // ── Progress bars ──
+  const sp=Math.min(100,(bestSw/3800)*100),bp=Math.min(100,(bestBk/180000)*100),rp=Math.min(100,(bestRn/42000)*100);
+  document.getElementById('bsw').textContent=Math.round(bestSw);
+  document.getElementById('bbk').textContent=(bestBk/1000).toFixed(1);
+  document.getElementById('brn').textContent=(bestRn/1000).toFixed(1);
+  document.getElementById('pct-sw').textContent=sp.toFixed(0)+'%';
+  document.getElementById('pct-bk').textContent=bp.toFixed(0)+'%';
+  document.getElementById('pct-rn').textContent=rp.toFixed(0)+'%';
+  setTimeout(()=>{
+    document.getElementById('bar-sw').style.width=sp+'%';
+    document.getElementById('bar-bk').style.width=bp+'%';
+    document.getElementById('bar-rn').style.width=rp+'%';
+  },300);
+
+  // ── Projected Finish Time ──
+  function fmtHM(totalSec){const h=Math.floor(totalSec/3600),m=Math.floor((totalSec%3600)/60);return`${h}:${m.toString().padStart(2,'0')}`;}
+  const swActs=acts.filter(a=>(a.sport_type||a.type)==='Swim'&&a.distance>400&&a.average_speed>0.3);
+  const bkActs=acts.filter(a=>(a.sport_type||a.type)==='Ride'&&a.distance>60000&&a.average_speed>1);
+  const rnActs=acts.filter(a=>(a.sport_type||a.type)==='Run'&&a.distance>10000&&a.average_speed>1);
+  function medianSpeed(arr,n=5){const sp=arr.slice(0,n).map(a=>a.average_speed).filter(s=>s>0);if(!sp.length)return null;sp.sort((a,b)=>a-b);return sp[Math.floor(sp.length/2)];}
+  const swSpd=medianSpeed(swActs),bkSpd=medianSpeed(bkActs),rnSpd=medianSpeed(rnActs);
+  const ptSw=swSpd?Math.round(3800/swSpd):null;
+  const ptBk=bkSpd?Math.round(180000/bkSpd):null;
+  const ptRn=rnSpd?Math.round(42195/rnSpd):null;
+  const T1=8*60,T2=5*60;
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setEl('pt-sw',ptSw?fmtHM(ptSw):'—');
+  setEl('pt-bk',ptBk?fmtHM(ptBk):'—');
+  setEl('pt-rn',ptRn?fmtHM(ptRn):'—');
+  let projTotSec=null;
+  if(ptSw&&ptBk&&ptRn){
+    projTotSec=ptSw+T1+ptBk+T2+ptRn;
+    setEl('pt-tot',fmtHM(projTotSec));
+  }
+
+  // ── Finalize Readiness (with pace component so both tell same story) ──
+  if(projTotSec){
+    const goalSec=10*3600; // sub-10:00
+    const maxGap=2*3600;   // treat 2hr over goal as 0% pace component
+    paceComp=Math.max(0,Math.min(100,(1-(projTotSec-goalSec)/maxGap)*100))*0.20;
+  }
+  const readiness=Math.round(baseReady+paceComp);
+  const readyEl=document.getElementById('ready-val'),readyLbl=document.getElementById('ready-lbl'),readyBar=document.getElementById('ready-bar');
+  const readyColor=readiness>=75?'#22c55e':readiness>=50?'#f59e0b':'#ef4444';
+  if(readyEl){readyEl.textContent=readiness;readyEl.style.color=readyColor;}
+  const readyTexts=['Building base','Getting there','On track','Race ready','Peak shape'];
+  if(readyLbl)readyLbl.textContent=readyTexts[Math.min(4,Math.floor(readiness/20))];
+  if(readyBar){readyBar.style.background=readyColor;}
+  setTimeout(()=>{if(readyBar)readyBar.style.width=readiness+'%';},300);
+  // Show projected in hero card
+  const rpt=document.getElementById('ready-proj-time');
+  if(rpt)rpt.textContent=projTotSec?fmtHM(projTotSec):'—';
+  if(rpt&&projTotSec)rpt.style.color=projTotSec<=36000?'#22c55e':'#f59e0b';
+  // Week-on-week delta (stored by week start)
+  const thisMonKey='im_ready_'+monOf(new Date()).toISOString().slice(0,10);
+  const lastMonKey='im_ready_'+monOf(new Date(Date.now()-7*86400000)).toISOString().slice(0,10);
+  const lastReady=parseInt(localStorage.getItem(lastMonKey)||readiness);
+  const rdelta=readiness-lastReady;
+  localStorage.setItem(thisMonKey,readiness);
+  const rdEl2=document.getElementById('ready-delta');
+  if(rdEl2){
+    rdEl2.textContent=rdelta>0?`↑ +${rdelta}% this week`:rdelta<0?`↓ ${rdelta}% this week`:`→ No change this week`;
+    rdEl2.className=`ready-delta ${rdelta>0?'up':rdelta<0?'dn':'nc'}`;
+  }
+  // ── Threshold display ──
+  loadThreshDisplay();
+
+  // ── Load chart (overview) ──
+  const step=Math.max(1,Math.floor(allDays.length/35));
+  const ldLabels=allDays.filter((_,i)=>i%step===0).map(d=>{const x=new Date(d);return`${x.getDate()}/${x.getMonth()+1}`;});
+  charts.load=new Chart(document.getElementById('loadChart').getContext('2d'),{
+    type:'line',data:{labels:ldLabels,datasets:[
+      {label:'Acute',data:atl.filter((_,i)=>i%step===0),borderColor:'#FC4C02',backgroundColor:'rgba(252,76,2,0.07)',tension:0.4,pointRadius:0,fill:true,borderWidth:1.5},
+      {label:'Chronic',data:ctl.filter((_,i)=>i%step===0),borderColor:'#3b9dff',backgroundColor:'transparent',tension:0.4,pointRadius:0,fill:false,borderWidth:1.5,borderDash:[4,3]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#52525b',font:tickFont,boxWidth:8,padding:6}},tooltip:{...tooltipDefaults,mode:'index',intersect:false}},scales:{x:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont,maxTicksLimit:8}},y:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont},beginAtZero:true}}}
+  });
+
+  // ── Recent activities ──
+  document.getElementById('recent-acts').innerHTML=acts.slice(0,6).map(a=>{
+    const sport=a.sport_type||a.type,{e,cls}=sportMeta(sport);
+    const dist=a.distance||0;
+    const prim=dist>100?`${(dist/1000).toFixed(1)} km`:fmtTime(a.moving_time);
+    let sec='';
+    if(sport==='Run'&&a.average_speed>1)sec=runPace(a.average_speed)||'';
+    else if(sport==='Swim'&&a.average_speed>0.3)sec=swimPace(a.average_speed)||'';
+    else if(sport==='Ride'&&a.average_speed>1)sec=`${(a.average_speed*3.6).toFixed(1)} km/h`;
+    const re=a.suffer_score||0,prs=a.pr_count||0;
+    const reBadge=re>0?`<span class="pill ${re>=80?'pill-hi':'pill-re'}">RE ${re}</span>`:'';
+    const prBadge=prs>0?`<span class="pill pill-pr">🏆 ${prs}</span>`:'';
+    const hrStr=a.average_heartrate?`<div class="act-hr">♥ ${Math.round(a.average_heartrate)} avg</div>`:'';
+    return`<div class="act-row"><div class="act-ico ${cls}">${e}</div><div class="act-inf"><div class="act-name">${a.name}${reBadge}${prBadge}</div><div class="act-date">${fmtDate(a.start_date_local)}</div></div><div class="act-stats"><div class="act-prim">${prim}</div><div class="act-sec">${sec}</div>${hrStr}</div></div>`;
+  }).join('');
+
+  // ── Full activity log ──
+  document.getElementById('log-list').innerHTML=acts.slice(0,30).map(a=>{
+    const sport=a.sport_type||a.type,{e,cls}=sportMeta(sport);
+    const dist=a.distance||0;
+    const prim=dist>100?`${(dist/1000).toFixed(1)} km`:fmtTime(a.moving_time);
+    let sec='';
+    if(sport==='Run'&&a.average_speed>1)sec=runPace(a.average_speed)||'';
+    else if(sport==='Swim'&&a.average_speed>0.3)sec=swimPace(a.average_speed)||'';
+    else if(sport==='Ride'&&a.average_speed>1)sec=`${(a.average_speed*3.6).toFixed(1)} km/h`;
+    const re=a.suffer_score||0,prs=a.pr_count||0;
+    const reBadge=re>0?`<span class="pill ${re>=80?'pill-hi':'pill-re'}">RE ${re}</span>`:'';
+    const prBadge=prs>0?`<span class="pill pill-pr">🏆</span>`:'';
+    const hrStr=a.average_heartrate?`<div class="act-hr">♥ ${Math.round(a.average_heartrate)} · max ${Math.round(a.max_heartrate)} bpm</div>`:'';
+    return`<div class="act-row"><div class="act-ico ${cls}">${e}</div><div class="act-inf"><div class="act-name">${a.name}${reBadge}${prBadge}</div><div class="act-date">${fmtDate(a.start_date_local)}</div></div><div class="act-stats"><div class="act-prim">${prim}</div><div class="act-sec">${sec}</div>${hrStr}</div></div>`;
+  }).join('');
+
+  // ── Charts view ──
+  const weeks=Object.keys(weekly).sort();
+  const wkLbls=weeks.map(w=>{const d=new Date(w);return`${d.getDate()}/${d.getMonth()+1}`;});
+
+  // CTL Fitness Trend — main hero chart in charts view
+  const ctlStep=Math.max(1,Math.floor(allDays.length/40));
+  const ctlLabels=allDays.filter((_,i)=>i%ctlStep===0).map(d=>{const x=new Date(d);return`${x.getDate()}/${x.getMonth()+1}`;});
+  const ctlData=ctl.filter((_,i)=>i%ctlStep===0);
+  const targetLine=ctlData.map(()=>80);
+  charts.ctl=new Chart(document.getElementById('ctlChart').getContext('2d'),{
+    type:'line',
+    data:{labels:ctlLabels,datasets:[
+      {label:'CTL (Fitness)',data:ctlData,borderColor:'#3b9dff',backgroundColor:'rgba(59,157,255,0.10)',tension:0.4,pointRadius:0,fill:true,borderWidth:2},
+      {label:'Target (race-fit)',data:targetLine,borderColor:'rgba(252,76,2,0.5)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#52525b',font:tickFont,boxWidth:8,padding:6}},
+        tooltip:{...tooltipDefaults,mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(1)}`}}},
+      scales:{x:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont,maxTicksLimit:10}},
+        y:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont},beginAtZero:true,suggestedMax:100}}}
+  });
+
+  // Long Run Progression
+  charts.longRun=new Chart(document.getElementById('longRunChart').getContext('2d'),{
+    type:'line',
+    data:{labels:longRuns.map(r=>{const d=new Date(r.d);return`${d.getDate()}/${d.getMonth()+1}`;}),
+      datasets:[
+        {label:'Long Run km',data:longRuns.map(r=>r.km),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',tension:0.3,pointRadius:3,pointBackgroundColor:'#22c55e',fill:true,borderWidth:1.5},
+        {label:'Race (42km)',data:longRuns.map(()=>42),borderColor:'rgba(252,76,2,0.4)',borderWidth:1,borderDash:[5,4],pointRadius:0}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#52525b',font:tickFont,boxWidth:8,padding:6}},
+        tooltip:{...tooltipDefaults,callbacks:{label:ctx=>`${ctx.raw} km`}}},
+      scales:{x:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont}},
+        y:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont,callback:v=>`${v}km`},beginAtZero:false,suggestedMin:10,suggestedMax:45}}}
+  });
+
+  // Long Ride Progression
+  charts.longRide=new Chart(document.getElementById('longRideChart').getContext('2d'),{
+    type:'line',
+    data:{labels:longRides.map(r=>{const d=new Date(r.d);return`${d.getDate()}/${d.getMonth()+1}`;}),
+      datasets:[
+        {label:'Long Ride km',data:longRides.map(r=>r.km),borderColor:'#FC4C02',backgroundColor:'rgba(252,76,2,0.08)',tension:0.3,pointRadius:3,pointBackgroundColor:'#FC4C02',fill:true,borderWidth:1.5},
+        {label:'Race (180km)',data:longRides.map(()=>180),borderColor:'rgba(252,76,2,0.4)',borderWidth:1,borderDash:[5,4],pointRadius:0}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#52525b',font:tickFont,boxWidth:8,padding:6}},
+        tooltip:{...tooltipDefaults,callbacks:{label:ctx=>`${ctx.raw} km`}}},
+      scales:{x:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont}},
+        y:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont,callback:v=>`${v}km`},beginAtZero:false,suggestedMin:40,suggestedMax:190}}}
+  });
+
+  // Best Swim Effort Trend (pace per 100m from sessions >400m)
+  charts.swimPace=new Chart(document.getElementById('swimPaceChart').getContext('2d'),{
+    type:'line',
+    data:{labels:bestSwims.map(s=>{const d=new Date(s.d);return`${d.getDate()}/${d.getMonth()+1}`;}),
+      datasets:[{label:'/100m',data:bestSwims.map(s=>s.pace),borderColor:'#3b9dff',backgroundColor:'rgba(59,157,255,0.07)',tension:0.3,pointRadius:2,pointBackgroundColor:'#3b9dff',fill:true,borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...tooltipDefaults,callbacks:{label:ctx=>{const v=ctx.raw;const m=Math.floor(v),s=Math.round((v-m)*60);return`${m}:${s.toString().padStart(2,'0')}/100m`;},}}},
+      scales:{x:{grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont}},
+        y:{reverse:true,grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont,callback:v=>{const m=Math.floor(v),s=Math.round((v-m)*60);return`${m}:${s.toString().padStart(2,'0')}`;},},suggestedMin:1.4,suggestedMax:2.6}}}
+  });
+
+  // Weekly Volume
+  charts.vol=new Chart(document.getElementById('volChart').getContext('2d'),{
+    type:'bar',data:{labels:wkLbls,datasets:[
+      {label:'Swim',data:weeks.map(w=>+weekly[w].sw.toFixed(1)),backgroundColor:'rgba(59,157,255,0.75)',borderRadius:2},
+      {label:'Ride',data:weeks.map(w=>+weekly[w].bk.toFixed(1)),backgroundColor:'rgba(252,76,2,0.75)',borderRadius:2},
+      {label:'Run',data:weeks.map(w=>+weekly[w].rn.toFixed(1)),backgroundColor:'rgba(34,197,94,0.75)',borderRadius:2}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{color:'#52525b',font:tickFont,boxWidth:8,padding:6}}},
+      scales:{x:{stacked:true,grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont}},y:{stacked:true,grid:{color:gridCol},ticks:{color:'#52525b',font:tickFont}}}}
+  });
+
+  renderToday();
+  renderSessionsView();
+
+  document.getElementById('loading').style.display='none';
+  const app=document.getElementById('app');
+  app.style.display='';
+  app.classList.add('active');
+}
+
+// ─── THRESHOLD FUNCTIONS ──────────────────────────────────────────────────
+function loadThreshDisplay(){
+  const ftp=localStorage.getItem('im_ftp')||'',wt=localStorage.getItem('im_wt')||'';
+  const css=localStorage.getItem('im_css')||'',tp=localStorage.getItem('im_tp')||'';
+  const wkg=ftp&&wt?(parseFloat(ftp)/parseFloat(wt)).toFixed(1):'—';
+  document.getElementById('td-ftp').textContent=ftp||'—';
+  document.getElementById('td-wkg').textContent=ftp&&wt?`${wkg}`:'—';
+  document.getElementById('td-css').textContent=css||'—';
+  document.getElementById('td-tp').textContent=tp||'—';
+  // Pre-fill edit fields
+  const ti=id=>document.getElementById(id);
+  if(ti('ti-ftp'))ti('ti-ftp').value=ftp;
+  if(ti('ti-wt'))ti('ti-wt').value=wt;
+  if(ti('ti-css'))ti('ti-css').value=css;
+  if(ti('ti-tp'))ti('ti-tp').value=tp;
+}
+function toggleThresh(){
+  const ed=document.getElementById('thresh-edit');
+  if(ed)ed.style.display=ed.style.display==='block'?'none':'block';
+}
+function saveThresh(){
+  const g=id=>document.getElementById(id)?.value.trim()||'';
+  localStorage.setItem('im_ftp',g('ti-ftp'));
+  localStorage.setItem('im_wt',g('ti-wt'));
+  localStorage.setItem('im_css',g('ti-css'));
+  localStorage.setItem('im_tp',g('ti-tp'));
+  loadThreshDisplay();
+  const ed=document.getElementById('thresh-edit');
+  if(ed)ed.style.display='none';
+}
+
+// ─── DATA LOADING ─────────────────────────────────────────────────────────
+async function refreshData(){
+  try{
+    const token=await getToken();
+    if(!token){showLogin();return;}
+    const acts=await fetchActs(token);
+    acts.sort((a,b)=>new Date(b.start_date)-new Date(a.start_date));
+    localStorage.setItem('cached_acts',JSON.stringify(acts));
+    render(acts);
+  }catch(e){console.error(e);}
+}
+
+// ─── SPLASH CONTROLLER ────────────────────────────────────────────────────
+const SPLASH_MIN=3200; // ms
+let _splashMinDone=false,_splashCallback=null;
+
+function startSplash(){
+  const el=document.getElementById('sp-days');
+  if(el)el.textContent=daysLeft();
+  setTimeout(()=>{
+    _splashMinDone=true;
+    if(_splashCallback)_splashCallback();
+  },SPLASH_MIN);
+}
+
+function exitSplash(fn){
+  const go=()=>{
+    const sp=document.getElementById('splash');
+    sp.classList.add('sp-exit');
+    setTimeout(()=>{sp.style.display='none';fn();},750);
+  };
+  if(_splashMinDone)go();else _splashCallback=go;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+function showLogin(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login').style.display='block';
+  document.getElementById('connect-btn').href=authUrl();
+}
+
+async function init(){
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  startSplash();
+
+  const params=new URLSearchParams(location.search);
+  if(params.has('code')){
+    try{const d=await exchCode(params.get('code'));saveTok(d);history.replaceState({},document.title,location.pathname);}
+    catch(e){exitSplash(showLogin);return;}
+  }
+
+  const token=await getToken();
+  if(!token){exitSplash(showLogin);return;}
+
+  const cached=localStorage.getItem('cached_acts');
+  if(cached){
+    exitSplash(()=>{
+      render(JSON.parse(cached));
+      document.getElementById('app').classList.add('fade-in');
+      refreshData();
+    });
+  }else{
+    try{
+      const tok=await getToken();
+      const acts=await fetchActs(tok);
+      acts.sort((a,b)=>new Date(b.start_date)-new Date(a.start_date));
+      localStorage.setItem('cached_acts',JSON.stringify(acts));
+      exitSplash(()=>{
+        render(acts);
+        document.getElementById('app').classList.add('fade-in');
+      });
+    }catch(e){exitSplash(showLogin);}
+  }
+}
+init();
+</script>
+</body>
+</html>
